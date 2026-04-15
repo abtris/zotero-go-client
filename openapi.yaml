@@ -1,0 +1,969 @@
+openapi: 3.1.0
+info:
+  title: Zotero Web API
+  version: "3"
+  description: Complete OpenAPI 3.1 specification for the Zotero Web API v3.
+  contact:
+    url: https://www.zotero.org/support/dev/web_api/v3/start
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+servers:
+  - url: https://api.zotero.org
+    description: Zotero API production server
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Items
+  - name: Collections
+  - name: Searches
+  - name: Tags
+  - name: Schema
+  - name: Keys
+  - name: Groups
+  - name: FullText
+  - name: Deleted
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: Zotero-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    userID:
+      name: userID
+      in: path
+      required: true
+      schema: { type: string }
+    groupID:
+      name: groupID
+      in: path
+      required: true
+      schema: { type: string }
+    itemKey:
+      name: itemKey
+      in: path
+      required: true
+      schema: { type: string }
+    collectionKey:
+      name: collectionKey
+      in: path
+      required: true
+      schema: { type: string }
+    searchKey:
+      name: searchKey
+      in: path
+      required: true
+      schema: { type: string }
+    tagName:
+      name: tag
+      in: path
+      required: true
+      schema: { type: string }
+    limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    start:
+      name: start
+      in: query
+      schema: { type: integer, default: 0 }
+    sort:
+      name: sort
+      in: query
+      schema: { type: string }
+    direction:
+      name: direction
+      in: query
+      schema: { type: string, enum: [asc, desc] }
+    since:
+      name: since
+      in: query
+      schema: { type: integer }
+    format:
+      name: format
+      in: query
+      schema: { type: string }
+    tag:
+      name: tag
+      in: query
+      schema: { type: string }
+    q:
+      name: q
+      in: query
+
+  schemas:
+    Item:
+      type: object
+      properties:
+        key: { type: string }
+        version: { type: integer }
+        library: { $ref: '#/components/schemas/Library' }
+        links: { type: object }
+        meta: { type: object }
+        data: { $ref: '#/components/schemas/ItemData' }
+    ItemData:
+      type: object
+      required: [itemType]
+      properties:
+        key: { type: string }
+        version: { type: integer }
+        itemType: { type: string }
+        title: { type: string }
+        creators: { type: array, items: { $ref: '#/components/schemas/Creator' } }
+        abstractNote: { type: string }
+        date: { type: string }
+        url: { type: string }
+        tags: { type: array, items: { $ref: '#/components/schemas/Tag' } }
+        collections: { type: array, items: { type: string } }
+        relations: { type: object }
+        parentItem: { type: string }
+        note: { type: string }
+      additionalProperties: true
+    Creator:
+      type: object
+      properties:
+        creatorType: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        name: { type: string }
+    Tag:
+      type: object
+      required: [tag]
+      properties:
+        tag: { type: string }
+        type: { type: integer }
+    TagEntry:
+      type: object
+      properties:
+        tag: { type: string }
+        links: { type: object }
+        meta:
+          type: object
+          properties:
+            type: { type: integer }
+            numItems: { type: integer }
+    Collection:
+      type: object
+      properties:
+        key: { type: string }
+        version: { type: integer }
+        library: { $ref: '#/components/schemas/Library' }
+        links: { type: object }
+        meta: { type: object }
+        data: { $ref: '#/components/schemas/CollectionData' }
+    CollectionData:
+      type: object
+      required: [name]
+      properties:
+        key: { type: string }
+        version: { type: integer }
+        name: { type: string }
+        parentCollection: { oneOf: [{ type: string }, { type: boolean }] }
+        relations: { type: object }
+    Search:
+      type: object
+      properties:
+        key: { type: string }
+        version: { type: integer }
+        library: { $ref: '#/components/schemas/Library' }
+        links: { type: object }
+        data: { $ref: '#/components/schemas/SearchData' }
+    SearchData:
+      type: object
+      required: [name, conditions]
+      properties:
+        key: { type: string }
+        version: { type: integer }
+        name: { type: string }
+        conditions: { type: array, items: { $ref: '#/components/schemas/SearchCondition' } }
+    SearchCondition:
+      type: object
+      required: [condition, operator, value]
+      properties:
+        condition: { type: string }
+        operator: { type: string }
+        value: { type: string }
+    Library:
+      type: object
+      properties:
+        type: { type: string }
+        id: { type: integer }
+        name: { type: string }
+        links: { type: object }
+    Group:
+      type: object
+      properties:
+        id: { type: integer }
+        version: { type: integer }
+        links: { type: object }
+        meta: { type: object }
+        data: { $ref: '#/components/schemas/GroupData' }
+    GroupData:
+      type: object
+      properties:
+        id: { type: integer }
+        version: { type: integer }
+        name: { type: string }
+        owner: { type: integer }
+        type: { type: string }
+        description: { type: string }
+        url: { type: string }
+        libraryEditing: { type: string }
+        libraryReading: { type: string }
+        fileEditing: { type: string }
+    FullText:
+      type: object
+      properties:
+        content: { type: string }
+        indexedPages: { type: integer }
+        totalPages: { type: integer }
+        indexedChars: { type: integer }
+        version: { type: integer }
+    FullTextVersions:
+      type: object
+      additionalProperties: { type: integer }
+    DeletedContent:
+      type: object
+      properties:
+        collections: { type: array, items: { type: string } }
+        searches: { type: array, items: { type: string } }
+        items: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+        settings: { type: array, items: { type: string } }
+    KeyInfo:
+      type: object
+      properties:
+        key: { type: string }
+        userID: { type: integer }
+        username: { type: string }
+        access: { $ref: '#/components/schemas/KeyAccess' }
+    KeyAccess:
+      type: object
+      properties:
+        user: { $ref: '#/components/schemas/KeyPermissions' }
+        groups: { type: object, additionalProperties: { $ref: '#/components/schemas/KeyPermissions' } }
+    KeyPermissions:
+      type: object
+      properties:
+        library: { type: boolean }
+        files: { type: boolean }
+        notes: { type: boolean }
+        write: { type: boolean }
+    WriteResponse:
+      type: object
+      properties:
+        success: { type: object, additionalProperties: { type: string } }
+        unchanged: { type: object, additionalProperties: { type: string } }
+        failed: { type: object, additionalProperties: { $ref: '#/components/schemas/WriteFailure' } }
+        successful: { type: object, additionalProperties: { $ref: '#/components/schemas/Item' } }
+    WriteFailure:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+    SchemaItemType:
+      type: object
+      properties:
+        itemType: { type: string }
+        localized: { type: string }
+    SchemaField:
+      type: object
+      properties:
+        field: { type: string }
+        localized: { type: string }
+    SchemaCreatorType:
+      type: object
+      properties:
+        creatorType: { type: string }
+        localized: { type: string }
+
+  responses:
+    NotFound:
+      description: Not Found
+    Conflict:
+      description: Version conflict
+    RateLimited:
+      description: Too Many Requests
+      headers:
+        Retry-After:
+          schema: { type: integer }
+    NoContent:
+      description: Successful deletion
+
+paths:
+  # --- Items (User Library) ---
+  /users/{userID}/items:
+    get:
+      tags: [Items]
+      summary: List items in a user library
+      operationId: listUserItems
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/start'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/direction'
+        - $ref: '#/components/parameters/since'
+        - $ref: '#/components/parameters/format'
+        - $ref: '#/components/parameters/tag'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/qmode'
+        - $ref: '#/components/parameters/itemTypeFilter'
+        - $ref: '#/components/parameters/ifModifiedSinceVersion'
+      responses:
+        '200':
+          description: List of items
+          headers:
+            Last-Modified-Version: { schema: { type: integer } }
+            Total-Results: { schema: { type: integer } }
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+        '304': { description: Not Modified }
+    post:
+      tags: [Items]
+      summary: Create items
+      operationId: createUserItems
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: array, items: { $ref: '#/components/schemas/ItemData' } }
+      responses:
+        '200':
+          description: Write result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WriteResponse' }
+
+  /users/{userID}/items/top:
+    get:
+      tags: [Items]
+      summary: List top-level items in a user library
+      operationId: listUserTopItems
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/start'
+      responses:
+        '200':
+          description: List of top-level items
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+
+  /users/{userID}/items/trash:
+    get:
+      tags: [Items]
+      summary: List trashed items
+      operationId: listUserTrashedItems
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: List of trashed items
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+
+  /users/{userID}/items/{itemKey}:
+    get:
+      tags: [Items]
+      summary: Get a single item
+      operationId: getUserItem
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+      responses:
+        '200':
+          description: The item
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Item' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Items]
+      summary: Update an item
+      operationId: updateUserItem
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+        - $ref: '#/components/parameters/ifUnmodifiedSinceVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ItemData' }
+      responses:
+        '200':
+          description: Updated item
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Item' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '412': { description: Precondition Failed }
+    patch:
+      tags: [Items]
+      summary: Partially update an item
+      operationId: patchUserItem
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+        - $ref: '#/components/parameters/ifUnmodifiedSinceVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200':
+          description: Patched item
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Item' }
+    delete:
+      tags: [Items]
+      summary: Delete an item
+      operationId: deleteUserItem
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+        - $ref: '#/components/parameters/ifUnmodifiedSinceVersion'
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /users/{userID}/items/{itemKey}/children:
+    get:
+      tags: [Items]
+      summary: List child items
+      operationId: listUserItemChildren
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+      responses:
+        '200':
+          description: Child items
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+
+  /users/{userID}/publications/items:
+    get:
+      tags: [Items]
+      summary: List user publications
+      operationId: listUserPublications
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Publication items
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+
+  /users/{userID}/collections/{collectionKey}/items:
+    get:
+      tags: [Items]
+      summary: List items in a collection
+      operationId: listUserCollectionItems
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+      responses:
+        '200':
+          description: Items in collection
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+
+  /users/{userID}/collections/{collectionKey}/items/top:
+    get:
+      tags: [Items]
+      summary: List top items in a collection
+      operationId: listUserCollectionTopItems
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+      responses:
+        '200':
+          description: Top items in collection
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
+
+  # --- Collections ---
+  /users/{userID}/collections:
+    get:
+      tags: [Collections]
+      summary: List collections
+      operationId: listUserCollections
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/start'
+      responses:
+        '200':
+          description: List of collections
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Collection' } }
+    post:
+      tags: [Collections]
+      summary: Create collections
+      operationId: createUserCollections
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: array, items: { $ref: '#/components/schemas/CollectionData' } }
+      responses:
+        '200':
+          description: Write result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WriteResponse' }
+
+  /users/{userID}/collections/top:
+    get:
+      tags: [Collections]
+      summary: List top-level collections
+      operationId: listUserTopCollections
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Top-level collections
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Collection' } }
+
+  /users/{userID}/collections/{collectionKey}:
+    get:
+      tags: [Collections]
+      summary: Get a collection
+      operationId: getUserCollection
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+      responses:
+        '200':
+          description: The collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Collection' }
+    put:
+      tags: [Collections]
+      summary: Update a collection
+      operationId: updateUserCollection
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+        - $ref: '#/components/parameters/ifUnmodifiedSinceVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CollectionData' }
+      responses:
+        '200':
+          description: Updated collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Collection' }
+    delete:
+      tags: [Collections]
+      summary: Delete a collection
+      operationId: deleteUserCollection
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+        - $ref: '#/components/parameters/ifUnmodifiedSinceVersion'
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /users/{userID}/collections/{collectionKey}/collections:
+    get:
+      tags: [Collections]
+      summary: List subcollections
+      operationId: listUserSubcollections
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+      responses:
+        '200':
+          description: Subcollections
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Collection' } }
+
+  # --- Searches ---
+  /users/{userID}/searches:
+    get:
+      tags: [Searches]
+      summary: List saved searches
+      operationId: listUserSearches
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Saved searches
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Search' } }
+    post:
+      tags: [Searches]
+      summary: Create saved searches
+      operationId: createUserSearches
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: array, items: { $ref: '#/components/schemas/SearchData' } }
+      responses:
+        '200':
+          description: Write result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WriteResponse' }
+
+  /users/{userID}/searches/{searchKey}:
+    get:
+      tags: [Searches]
+      summary: Get a saved search
+      operationId: getUserSearch
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/searchKey'
+      responses:
+        '200':
+          description: The saved search
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Search' }
+
+  # --- Tags ---
+  /users/{userID}/tags:
+    get:
+      tags: [Tags]
+      summary: List all tags
+      operationId: listUserTags
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/start'
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  /users/{userID}/tags/{tag}:
+    get:
+      tags: [Tags]
+      summary: Get a specific tag
+      operationId: getUserTag
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/tagName'
+      responses:
+        '200':
+          description: Tag info
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  /users/{userID}/items/{itemKey}/tags:
+    get:
+      tags: [Tags]
+      summary: List tags for an item
+      operationId: listUserItemTags
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+      responses:
+        '200':
+          description: Item tags
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  /users/{userID}/collections/{collectionKey}/tags:
+    get:
+      tags: [Tags]
+      summary: List tags in a collection
+      operationId: listUserCollectionTags
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/collectionKey'
+      responses:
+        '200':
+          description: Collection tags
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  /users/{userID}/items/tags:
+    get:
+      tags: [Tags]
+      summary: List all tags used by items
+      operationId: listUserItemsTags
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  /users/{userID}/items/top/tags:
+    get:
+      tags: [Tags]
+      summary: List tags for top-level items
+      operationId: listUserTopItemsTags
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  /users/{userID}/items/trash/tags:
+    get:
+      tags: [Tags]
+      summary: List tags for trashed items
+      operationId: listUserTrashItemsTags
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TagEntry' } }
+
+  # --- Schema ---
+  /itemTypes:
+    get:
+      tags: [Schema]
+      summary: List all item types
+      operationId: getItemTypes
+      security: []
+      responses:
+        '200':
+          description: Item types
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/SchemaItemType' } }
+
+  /itemFields:
+    get:
+      tags: [Schema]
+      summary: List all item fields
+      operationId: getItemFields
+      security: []
+      responses:
+        '200':
+          description: Item fields
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/SchemaField' } }
+
+  /itemTypeFields:
+    get:
+      tags: [Schema]
+      summary: List valid fields for an item type
+      operationId: getItemTypeFields
+      security: []
+      parameters:
+        - name: itemType
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Fields for item type
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/SchemaField' } }
+
+  /itemTypeCreatorTypes:
+    get:
+      tags: [Schema]
+      summary: List valid creator types for an item type
+      operationId: getItemTypeCreatorTypes
+      security: []
+      parameters:
+        - name: itemType
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Creator types
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/SchemaCreatorType' } }
+
+  /creatorFields:
+    get:
+      tags: [Schema]
+      summary: List creator fields
+      operationId: getCreatorFields
+      security: []
+      responses:
+        '200':
+          description: Creator fields
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/SchemaField' } }
+
+  /items/new:
+    get:
+      tags: [Schema]
+      summary: Get a template for a new item
+      operationId: getItemTemplate
+      security: []
+      parameters:
+        - name: itemType
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Item template
+          content:
+            application/json:
+              schema: { type: object }
+
+  # --- Keys ---
+  /keys/current:
+    get:
+      tags: [Keys]
+      summary: Get current API key info
+      operationId: getCurrentKey
+      responses:
+        '200':
+          description: Key information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeyInfo' }
+
+  /keys/{key}:
+    get:
+      tags: [Keys]
+      summary: Get API key info
+      operationId: getKey
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Key information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeyInfo' }
+    delete:
+      tags: [Keys]
+      summary: Delete an API key
+      operationId: deleteKey
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  # --- Groups ---
+  /users/{userID}/groups:
+    get:
+      tags: [Groups]
+      summary: List user groups
+      operationId: listUserGroups
+      parameters:
+        - $ref: '#/components/parameters/userID'
+      responses:
+        '200':
+          description: Groups
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Group' } }
+
+  # --- Full-Text ---
+  /users/{userID}/fulltext:
+    get:
+      tags: [FullText]
+      summary: List full-text content versions
+      operationId: listUserFullTextVersions
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/since'
+      responses:
+        '200':
+          description: Full-text versions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FullTextVersions' }
+
+  /users/{userID}/items/{itemKey}/fulltext:
+    get:
+      tags: [FullText]
+      summary: Get full-text content
+      operationId: getUserItemFullText
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+      responses:
+        '200':
+          description: Full-text content
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FullText' }
+    put:
+      tags: [FullText]
+      summary: Set full-text content
+      operationId: setUserItemFullText
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/itemKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FullText' }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  # --- Deleted ---
+  /users/{userID}/deleted:
+    get:
+      tags: [Deleted]
+      summary: Get deleted content
+      operationId: getUserDeleted
+      parameters:
+        - $ref: '#/components/parameters/userID'
+        - $ref: '#/components/parameters/since'
+      responses:
+        '200':
+          description: Deleted content
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedContent' }
