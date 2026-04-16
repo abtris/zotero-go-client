@@ -126,3 +126,76 @@ func (s *ItemsService) DeleteMultiple(ctx context.Context, lib LibraryID, itemKe
 	path := fmt.Sprintf("%s/items?itemKey=%s", lib.Path(), strings.Join(itemKeys, ","))
 	return s.client.delete(ctx, path, version)
 }
+
+// GetBibliography returns an HTML bibliography for a single item, formatted by the
+// Zotero API's built-in citeproc-js engine. Use WithStyle to set the CSL style
+// (defaults to "chicago-note-bibliography") and WithLocale for the locale.
+func (s *ItemsService) GetBibliography(ctx context.Context, lib LibraryID, itemKey string, opts ...RequestOption) (string, *Response, error) {
+	path := fmt.Sprintf("%s/items/%s", lib.Path(), itemKey)
+	opts = append([]RequestOption{WithFormat("bib")}, opts...)
+	data, resp, err := s.client.getRaw(ctx, path, opts)
+	if err != nil {
+		return "", resp, err
+	}
+	return string(data), resp, nil
+}
+
+// ListBibliography returns HTML bibliographies for items in the library.
+// Each item's bibliography entry is concatenated in the response.
+func (s *ItemsService) ListBibliography(ctx context.Context, lib LibraryID, opts ...RequestOption) (string, *Response, error) {
+	path := lib.Path() + "/items"
+	opts = append([]RequestOption{WithFormat("bib")}, opts...)
+	data, resp, err := s.client.getRaw(ctx, path, opts)
+	if err != nil {
+		return "", resp, err
+	}
+	return string(data), resp, nil
+}
+
+// ListTopBibliography returns HTML bibliographies for top-level items in the library.
+func (s *ItemsService) ListTopBibliography(ctx context.Context, lib LibraryID, opts ...RequestOption) (string, *Response, error) {
+	path := lib.Path() + "/items/top"
+	opts = append([]RequestOption{WithFormat("bib")}, opts...)
+	data, resp, err := s.client.getRaw(ctx, path, opts)
+	if err != nil {
+		return "", resp, err
+	}
+	return string(data), resp, nil
+}
+
+// ListCollectionBibliography returns HTML bibliographies for items in a collection.
+func (s *ItemsService) ListCollectionBibliography(ctx context.Context, lib LibraryID, collKey string, opts ...RequestOption) (string, *Response, error) {
+	path := fmt.Sprintf("%s/collections/%s/items", lib.Path(), collKey)
+	opts = append([]RequestOption{WithFormat("bib")}, opts...)
+	data, resp, err := s.client.getRaw(ctx, path, opts)
+	if err != nil {
+		return "", resp, err
+	}
+	return string(data), resp, nil
+}
+
+// CitationItem holds citation and bibliography data returned when using
+// include=citation,bib with format=json.
+type CitationItem struct {
+	Key      string `json:"key"`
+	Version  int    `json:"version"`
+	Citation string `json:"citation"`
+	Bib      string `json:"bib"`
+}
+
+// GetCitation returns the formatted inline citation for a single item.
+func (s *ItemsService) GetCitation(ctx context.Context, lib LibraryID, itemKey string, opts ...RequestOption) (string, *Response, error) {
+	path := fmt.Sprintf("%s/items/%s", lib.Path(), itemKey)
+	opts = append([]RequestOption{
+		WithFormat("json"),
+		WithInclude("citation"),
+	}, opts...)
+	var result struct {
+		Citation string `json:"citation"`
+	}
+	resp, err := s.client.get(ctx, path, opts, &result)
+	if err != nil {
+		return "", resp, err
+	}
+	return result.Citation, resp, nil
+}

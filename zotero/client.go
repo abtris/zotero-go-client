@@ -211,6 +211,49 @@ func (c *Client) get(ctx context.Context, path string, opts []RequestOption, v a
 	return c.do(req, v)
 }
 
+// getRaw is like get but returns the raw response body as bytes instead of JSON-decoding.
+// This is used for non-JSON response formats such as format=bib.
+func (c *Client) getRaw(ctx context.Context, path string, opts []RequestOption) ([]byte, *Response, error) {
+	params := applyOptions(opts)
+	if encoded := params.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return c.doRaw(req)
+}
+
+// doRaw executes an HTTP request and returns the raw response body.
+func (c *Client) doRaw(req *http.Request) ([]byte, *Response, error) {
+	httpResp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer httpResp.Body.Close()
+
+	resp := &Response{Response: httpResp}
+	resp.parseHeaders()
+
+	// Handle backoff header
+	if backoff := httpResp.Header.Get("Backoff"); backoff != "" {
+		if secs, err := strconv.Atoi(backoff); err == nil && secs > 0 {
+			time.Sleep(time.Duration(secs) * time.Second)
+		}
+	}
+
+	if httpResp.StatusCode >= 400 {
+		return nil, resp, parseAPIError(httpResp)
+	}
+
+	data, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, resp, err
+	}
+	return data, resp, nil
+}
+
 // post is a convenience method for POST requests.
 func (c *Client) post(ctx context.Context, path string, body any, v any) (*Response, error) {
 	var r io.Reader

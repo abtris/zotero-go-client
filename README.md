@@ -5,6 +5,7 @@ A Go client library for the [Zotero Web API v3](https://www.zotero.org/support/d
 ## Features
 
 - Full coverage of the Zotero Web API v3 (items, collections, searches, tags, groups, full-text, schema, keys, deleted content)
+- Citation and bibliography formatting via the API's built-in [citeproc-js](https://citeproc-js.readthedocs.io/) engine
 - Automatic pagination with Go 1.24 iterators (`iter.Seq2`)
 - WebSocket streaming via the [Zotero Streaming API](https://www.zotero.org/support/dev/web_api/v3/streaming_api)
 - Functional options for request parameters and client configuration
@@ -171,6 +172,50 @@ if zotero.IsNotFound(err) {
     // 412 — version conflict
 }
 ```
+
+### Citations and bibliographies
+
+The Zotero API includes a built-in [citeproc-js](https://citeproc-js.readthedocs.io/) engine that formats items as citations or bibliographies in any [CSL style](https://www.zotero.org/styles).
+
+```go
+// Get an APA-formatted bibliography for a single item
+bib, _, err := client.Items.GetBibliography(ctx, lib, "ITEMKEY",
+    zotero.WithStyle("apa"),
+    zotero.WithLocale("en-US"),
+)
+// bib is HTML: <div class="csl-bib-body">…</div>
+
+// Get an inline citation
+citation, _, err := client.Items.GetCitation(ctx, lib, "ITEMKEY",
+    zotero.WithStyle("chicago-note-bibliography"),
+)
+// citation is a string like "(Smith, 2023)"
+
+// Bibliography for all items in a collection, with clickable links
+bib, _, err := client.Items.ListCollectionBibliography(ctx, lib, "COLLKEY",
+    zotero.WithStyle("mla"),
+    zotero.WithLinkWrap(),
+)
+```
+
+Available citation options:
+
+| Option                          | Description                                      |
+| ------------------------------- | ------------------------------------------------ |
+| `WithStyle("apa")`             | CSL style ID (see [zotero.org/styles](https://www.zotero.org/styles)) |
+| `WithLocale("en-US")`          | Locale for formatting (e.g., `de-DE`, `fr-FR`)   |
+| `WithLinkWrap()`               | Wrap URLs and DOIs in HTML `<a>` tags             |
+| `WithInclude("bib,citation")`  | Include citation/bib data in JSON responses       |
+
+Bibliography methods:
+
+| Method                          | Description                                      |
+| ------------------------------- | ------------------------------------------------ |
+| `Items.GetBibliography`        | HTML bibliography for a single item               |
+| `Items.GetCitation`            | Inline citation text for a single item            |
+| `Items.ListBibliography`       | HTML bibliography for all items                   |
+| `Items.ListTopBibliography`    | HTML bibliography for top-level items             |
+| `Items.ListCollectionBibliography` | HTML bibliography for items in a collection    |
 
 ### Streaming
 

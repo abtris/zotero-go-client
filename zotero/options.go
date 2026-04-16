@@ -88,6 +88,29 @@ func WithItemKey(keys ...string) RequestOption {
 	return func(v url.Values) { v.Set("itemKey", strings.Join(keys, ",")) }
 }
 
+// WithStyle sets the citation style for format=bib requests.
+// The value should be a CSL style ID (e.g., "apa", "chicago-note-bibliography", "mla").
+// See https://www.zotero.org/styles for available styles.
+func WithStyle(style string) RequestOption {
+	return func(v url.Values) { v.Set("style", style) }
+}
+
+// WithLocale sets the locale for citation formatting (e.g., "en-US", "de-DE", "fr-FR").
+func WithLocale(locale string) RequestOption {
+	return func(v url.Values) { v.Set("locale", locale) }
+}
+
+// WithLinkWrap enables wrapping of URLs and DOIs in HTML links in bibliography output.
+func WithLinkWrap() RequestOption {
+	return func(v url.Values) { v.Set("linkwrap", "1") }
+}
+
+// WithInclude specifies data types to include in the response (e.g., "bib", "citation", "data").
+// Multiple values can be comma-separated.
+func WithInclude(include string) RequestOption {
+	return func(v url.Values) { v.Set("include", include) }
+}
+
 // ClientOption configures the Client.
 type ClientOption func(*Client)
 
